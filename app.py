@@ -37,6 +37,13 @@ class Home(Resource):
 @api.route("/viagens")
 class Viagens(Resource):
 
+    def get(self):
+        viagens = Viagem.query.all()
+
+        return {
+            "viagens": [viagem.to_dict() for viagem in viagens]
+    }, 200
+
     @api.expect(viagem_model)
     def post(self):
         dados = api.payload
