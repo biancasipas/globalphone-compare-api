@@ -1,8 +1,13 @@
+import requests
+
 from flask import Flask
 from flask_restx import Api, Resource, fields
 
 from database.db import db
+from datetime import datetime
 from models.viagem import Viagem
+
+
 
 
 app = Flask(__name__)
@@ -165,6 +170,45 @@ class ViagemPorId(Resource):
 with app.app_context():
     db.create_all()
 
+@api.route("/viagens/<int:id>/planejamento")
+class PlanejamentoViagem(Resource):
+
+    def get(self, id):
+        viagem = db.session.get(Viagem, id)
+
+        if not viagem:
+            return {
+                "mensagem": "Viagem não encontrada."
+            }, 404
+
+        data_inicio = datetime.strptime(
+            viagem.data_inicio,
+            "%Y-%m-%d"
+        )
+
+        data_fim = datetime.strptime(
+            viagem.data_fim,
+            "%Y-%m-%d"
+        )
+
+        dias = (data_fim - data_inicio).days
+
+        dados = {
+            "destino": viagem.destino,
+            "dias": dias,
+            "orcamento": viagem.orcamento
+        }
+
+        resposta = requests.post(
+            "http://127.0.0.1:5001/planejamento",
+            json=dados
+        )
+
+        return resposta.json(), resposta.status_code
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )
