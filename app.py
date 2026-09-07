@@ -206,6 +206,55 @@ class PlanejamentoViagem(Resource):
 
         return resposta.json(), resposta.status_code
 
+@api.route("/clima")
+class Clima(Resource):
+
+    parser = api.parser()
+
+    parser.add_argument(
+        "latitude",
+        type=float,
+        required=True,
+        location="args"
+    )
+
+    parser.add_argument(
+        "longitude",
+        type=float,
+        required=True,
+        location="args"
+    )
+
+    @api.expect(parser)
+    def get(self):
+
+        args = self.parser.parse_args()
+
+        latitude = args["latitude"]
+        longitude = args["longitude"]
+
+        url = "https://api.open-meteo.com/v1/forecast"
+
+        parametros = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "current": "temperature_2m,wind_speed_10m"
+        }
+
+        resposta = requests.get(
+            url,
+            params=parametros
+        )
+
+        dados = resposta.json()
+
+        return {
+            "latitude": latitude,
+            "longitude": longitude,
+            "temperatura": dados["current"]["temperature_2m"],
+            "velocidade_vento": dados["current"]["wind_speed_10m"]
+        }, 200
+
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
