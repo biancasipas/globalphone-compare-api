@@ -1,14 +1,16 @@
-import requests
+from datetime import datetime
+import os
 
 from flask import Flask
 from flask_restx import Api, Resource, fields
+import requests
 
 from database.db import db
-from datetime import datetime
 from models.viagem import Viagem
 
-
-
+PLANEJAMENTO_SERVICE_URL = os.getenv(
+    "PLANEJAMENTO_SERVICE_URL", "http://127.0.0.1:5001"
+)
 
 app = Flask(__name__)
 
@@ -24,27 +26,33 @@ api = Api(
     app,
     version="1.0",
     title="Travel Planner API",
-    description="API principal para gerenciamento de viagens."
+    description="API principal para gerenciamento de viagens.",
 )
 
 
 # Modelo usado no POST e PUT
-viagem_model = api.model("Viagem", {
-    "destino": fields.String(required=True),
-    "data_inicio": fields.String(required=True),
-    "data_fim": fields.String(required=True),
-    "orcamento": fields.Float(required=True)
-})
+viagem_model = api.model(
+    "Viagem",
+    {
+        "destino": fields.String(required=True),
+        "data_inicio": fields.String(required=True),
+        "data_fim": fields.String(required=True),
+        "orcamento": fields.Float(required=True),
+    },
+)
 
 
 # Modelo usado no PATCH
 # Os campos são opcionais porque podemos atualizar somente um deles
-viagem_patch_model = api.model("ViagemPatch", {
-    "destino": fields.String(required=False),
-    "data_inicio": fields.String(required=False),
-    "data_fim": fields.String(required=False),
-    "orcamento": fields.Float(required=False)
-})
+viagem_patch_model = api.model(
+    "ViagemPatch",
+    {
+        "destino": fields.String(required=False),
+        "data_inicio": fields.String(required=False),
+        "data_fim": fields.String(required=False),
+        "orcamento": fields.Float(required=False),
+    },
+)
 
 
 # Rota inicial
@@ -52,9 +60,7 @@ viagem_patch_model = api.model("ViagemPatch", {
 class Home(Resource):
 
     def get(self):
-        return {
-            "mensagem": "Travel Planner API funcionando!"
-        }, 200
+        return {"mensagem": "Travel Planner API funcionando!"}, 200
 
 
 # Rotas para listar e cadastrar viagens
@@ -65,9 +71,7 @@ class Viagens(Resource):
     def get(self):
         viagens = Viagem.query.all()
 
-        return {
-            "viagens": [viagem.to_dict() for viagem in viagens]
-        }, 200
+        return {"viagens": [viagem.to_dict() for viagem in viagens]}, 200
 
     # POST - Cadastra uma nova viagem
     @api.expect(viagem_model)
@@ -78,7 +82,7 @@ class Viagens(Resource):
             destino=dados["destino"],
             data_inicio=dados["data_inicio"],
             data_fim=dados["data_fim"],
-            orcamento=dados["orcamento"]
+            orcamento=dados["orcamento"],
         )
 
         db.session.add(nova_viagem)
@@ -86,7 +90,7 @@ class Viagens(Resource):
 
         return {
             "mensagem": "Viagem cadastrada com sucesso!",
-            "viagem": nova_viagem.to_dict()
+            "viagem": nova_viagem.to_dict(),
         }, 201
 
 
@@ -100,9 +104,7 @@ class ViagemPorId(Resource):
         viagem = db.session.get(Viagem, id)
 
         if not viagem:
-            return {
-                "mensagem": "Viagem não encontrada."
-            }, 404
+            return {"mensagem": "Viagem não encontrada."}, 404
 
         dados = api.payload
 
@@ -115,7 +117,7 @@ class ViagemPorId(Resource):
 
         return {
             "mensagem": "Viagem atualizada com sucesso!",
-            "viagem": viagem.to_dict()
+            "viagem": viagem.to_dict(),
         }, 200
 
     # PATCH - Atualiza somente os campos enviados
@@ -124,9 +126,7 @@ class ViagemPorId(Resource):
         viagem = db.session.get(Viagem, id)
 
         if not viagem:
-            return {
-                "mensagem": "Viagem não encontrada."
-            }, 404
+            return {"mensagem": "Viagem não encontrada."}, 404
 
         dados = api.payload
 
@@ -146,7 +146,7 @@ class ViagemPorId(Resource):
 
         return {
             "mensagem": "Viagem atualizada parcialmente com sucesso!",
-            "viagem": viagem.to_dict()
+            "viagem": viagem.to_dict(),
         }, 200
 
     # DELETE - Exclui uma viagem
@@ -154,21 +154,18 @@ class ViagemPorId(Resource):
         viagem = db.session.get(Viagem, id)
 
         if not viagem:
-            return {
-                "mensagem": "Viagem não encontrada."
-            }, 404
+            return {"mensagem": "Viagem não encontrada."}, 404
 
         db.session.delete(viagem)
         db.session.commit()
 
-        return {
-            "mensagem": "Viagem excluída com sucesso!"
-        }, 200
+        return {"mensagem": "Viagem excluída com sucesso!"}, 200
 
 
 # Cria as tabelas do banco caso ainda não existam
 with app.app_context():
     db.create_all()
+
 
 @api.route("/viagens/<int:id>/planejamento")
 class PlanejamentoViagem(Resource):
@@ -177,34 +174,26 @@ class PlanejamentoViagem(Resource):
         viagem = db.session.get(Viagem, id)
 
         if not viagem:
-            return {
-                "mensagem": "Viagem não encontrada."
-            }, 404
+            return {"mensagem": "Viagem não encontrada."}, 404
 
-        data_inicio = datetime.strptime(
-            viagem.data_inicio,
-            "%Y-%m-%d"
-        )
+        data_inicio = datetime.strptime(viagem.data_inicio, "%Y-%m-%d")
 
-        data_fim = datetime.strptime(
-            viagem.data_fim,
-            "%Y-%m-%d"
-        )
+        data_fim = datetime.strptime(viagem.data_fim, "%Y-%m-%d")
 
         dias = (data_fim - data_inicio).days
 
         dados = {
             "destino": viagem.destino,
             "dias": dias,
-            "orcamento": viagem.orcamento
+            "orcamento": viagem.orcamento,
         }
 
         resposta = requests.post(
-            "http://127.0.0.1:5001/planejamento",
-            json=dados
+            f"{PLANEJAMENTO_SERVICE_URL}/planejamento", json=dados
         )
 
         return resposta.json(), resposta.status_code
+
 
 @api.route("/clima")
 class Clima(Resource):
@@ -212,17 +201,11 @@ class Clima(Resource):
     parser = api.parser()
 
     parser.add_argument(
-        "latitude",
-        type=float,
-        required=True,
-        location="args"
+        "latitude", type=float, required=True, location="args"
     )
 
     parser.add_argument(
-        "longitude",
-        type=float,
-        required=True,
-        location="args"
+        "longitude", type=float, required=True, location="args"
     )
 
     @api.expect(parser)
@@ -238,13 +221,10 @@ class Clima(Resource):
         parametros = {
             "latitude": latitude,
             "longitude": longitude,
-            "current": "temperature_2m,wind_speed_10m"
+            "current": "temperature_2m,wind_speed_10m",
         }
 
-        resposta = requests.get(
-            url,
-            params=parametros
-        )
+        resposta = requests.get(url, params=parametros)
 
         dados = resposta.json()
 
@@ -252,12 +232,9 @@ class Clima(Resource):
             "latitude": latitude,
             "longitude": longitude,
             "temperatura": dados["current"]["temperature_2m"],
-            "velocidade_vento": dados["current"]["wind_speed_10m"]
+            "velocidade_vento": dados["current"]["wind_speed_10m"],
         }, 200
 
+
 if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=True
-    )
+    app.run(host="0.0.0.0", port=5000, debug=True)
