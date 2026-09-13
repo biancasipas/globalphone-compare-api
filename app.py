@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 
 from flask import Flask
@@ -6,235 +5,414 @@ from flask_restx import Api, Resource, fields
 import requests
 
 from database.db import db
-from models.viagem import Viagem
+from models.iphone import IPhone
 
-PLANEJAMENTO_SERVICE_URL = os.getenv(
-    "PLANEJAMENTO_SERVICE_URL", "http://127.0.0.1:5001"
+
+# Endereço da API Secundária
+COMPARACAO_SERVICE_URL = os.getenv(
+    "COMPARACAO_SERVICE_URL",
+    "http://127.0.0.1:5001"
 )
+
 
 app = Flask(__name__)
 
-# Configuração do banco de dados SQLite
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///travel_planner.db"
+
+# ============================================================
+# BANCO DE DADOS
+# ============================================================
+
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///globalphone.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 
 
-# Configuração do Swagger
+# ============================================================
+# SWAGGER
+# ============================================================
+
 api = Api(
     app,
     version="1.0",
-    title="Travel Planner API",
-    description="API principal para gerenciamento de viagens.",
+    title="GlobalPhone Compare API",
+    description=(
+        "API principal para cadastro e comparação "
+        "de preços de iPhones pelo mundo."
+    )
 )
 
 
+# ============================================================
+# MODELOS DO SWAGGER
+# ============================================================
+
 # Modelo usado no POST e PUT
-viagem_model = api.model(
-    "Viagem",
+iphone_model = api.model(
+    "IPhone",
     {
-        "destino": fields.String(required=True),
-        "data_inicio": fields.String(required=True),
-        "data_fim": fields.String(required=True),
-        "orcamento": fields.Float(required=True),
-    },
+        "modelo": fields.String(required=True),
+        "armazenamento": fields.String(required=True),
+        "cor": fields.String(required=True),
+        "pais": fields.String(required=True),
+        "moeda": fields.String(required=True),
+        "preco": fields.Float(required=True)
+    }
 )
 
 
 # Modelo usado no PATCH
-# Os campos são opcionais porque podemos atualizar somente um deles
-viagem_patch_model = api.model(
-    "ViagemPatch",
+iphone_patch_model = api.model(
+    "IPhonePatch",
     {
-        "destino": fields.String(required=False),
-        "data_inicio": fields.String(required=False),
-        "data_fim": fields.String(required=False),
-        "orcamento": fields.Float(required=False),
-    },
+        "modelo": fields.String(required=False),
+        "armazenamento": fields.String(required=False),
+        "cor": fields.String(required=False),
+        "pais": fields.String(required=False),
+        "moeda": fields.String(required=False),
+        "preco": fields.Float(required=False)
+    }
 )
 
 
-# Rota inicial
+# ============================================================
+# ROTA INICIAL
+# ============================================================
+
 @api.route("/")
 class Home(Resource):
 
     def get(self):
-        return {"mensagem": "Travel Planner API funcionando!"}, 200
+        return {
+            "mensagem": "GlobalPhone Compare API funcionando!"
+        }, 200
 
 
-# Rotas para listar e cadastrar viagens
-@api.route("/viagens")
-class Viagens(Resource):
+# ============================================================
+# LISTAR E CADASTRAR IPHONES
+# ============================================================
 
-    # GET - Lista todas as viagens
+@api.route("/iphones")
+class IPhones(Resource):
+
+    # GET - Lista todos os iPhones
     def get(self):
-        viagens = Viagem.query.all()
 
-        return {"viagens": [viagem.to_dict() for viagem in viagens]}, 200
+        iphones = IPhone.query.all()
 
-    # POST - Cadastra uma nova viagem
-    @api.expect(viagem_model)
+        return {
+            "iphones": [
+                iphone.to_dict()
+                for iphone in iphones
+            ]
+        }, 200
+
+
+    # POST - Cadastra um novo iPhone
+    @api.expect(iphone_model)
     def post(self):
+
         dados = api.payload
 
-        nova_viagem = Viagem(
-            destino=dados["destino"],
-            data_inicio=dados["data_inicio"],
-            data_fim=dados["data_fim"],
-            orcamento=dados["orcamento"],
+        novo_iphone = IPhone(
+            modelo=dados["modelo"],
+            armazenamento=dados["armazenamento"],
+            cor=dados["cor"],
+            pais=dados["pais"],
+            moeda=dados["moeda"].upper(),
+            preco=dados["preco"]
         )
 
-        db.session.add(nova_viagem)
+        db.session.add(novo_iphone)
         db.session.commit()
 
         return {
-            "mensagem": "Viagem cadastrada com sucesso!",
-            "viagem": nova_viagem.to_dict(),
+            "mensagem": "iPhone cadastrado com sucesso!",
+            "iphone": novo_iphone.to_dict()
         }, 201
 
 
-# Rotas para uma viagem específica
-@api.route("/viagens/<int:id>")
-class ViagemPorId(Resource):
+# ============================================================
+# ALTERAR E EXCLUIR IPHONE
+# ============================================================
 
-    # PUT - Atualiza todos os dados da viagem
-    @api.expect(viagem_model)
+@api.route("/iphones/<int:id>")
+class IPhonePorId(Resource):
+
+    # PUT - Atualiza todos os campos
+    @api.expect(iphone_model)
     def put(self, id):
-        viagem = db.session.get(Viagem, id)
 
-        if not viagem:
-            return {"mensagem": "Viagem não encontrada."}, 404
+        iphone = db.session.get(IPhone, id)
+
+        if not iphone:
+            return {
+                "mensagem": "iPhone não encontrado."
+            }, 404
 
         dados = api.payload
 
-        viagem.destino = dados["destino"]
-        viagem.data_inicio = dados["data_inicio"]
-        viagem.data_fim = dados["data_fim"]
-        viagem.orcamento = dados["orcamento"]
+        iphone.modelo = dados["modelo"]
+        iphone.armazenamento = dados["armazenamento"]
+        iphone.cor = dados["cor"]
+        iphone.pais = dados["pais"]
+        iphone.moeda = dados["moeda"].upper()
+        iphone.preco = dados["preco"]
 
         db.session.commit()
 
         return {
-            "mensagem": "Viagem atualizada com sucesso!",
-            "viagem": viagem.to_dict(),
+            "mensagem": "iPhone atualizado com sucesso!",
+            "iphone": iphone.to_dict()
         }, 200
+
 
     # PATCH - Atualiza somente os campos enviados
-    @api.expect(viagem_patch_model)
+    @api.expect(iphone_patch_model)
     def patch(self, id):
-        viagem = db.session.get(Viagem, id)
 
-        if not viagem:
-            return {"mensagem": "Viagem não encontrada."}, 404
+        iphone = db.session.get(IPhone, id)
+
+        if not iphone:
+            return {
+                "mensagem": "iPhone não encontrado."
+            }, 404
 
         dados = api.payload
 
-        if "destino" in dados:
-            viagem.destino = dados["destino"]
+        if "modelo" in dados:
+            iphone.modelo = dados["modelo"]
 
-        if "data_inicio" in dados:
-            viagem.data_inicio = dados["data_inicio"]
+        if "armazenamento" in dados:
+            iphone.armazenamento = dados["armazenamento"]
 
-        if "data_fim" in dados:
-            viagem.data_fim = dados["data_fim"]
+        if "cor" in dados:
+            iphone.cor = dados["cor"]
 
-        if "orcamento" in dados:
-            viagem.orcamento = dados["orcamento"]
+        if "pais" in dados:
+            iphone.pais = dados["pais"]
+
+        if "moeda" in dados:
+            iphone.moeda = dados["moeda"].upper()
+
+        if "preco" in dados:
+            iphone.preco = dados["preco"]
 
         db.session.commit()
 
         return {
-            "mensagem": "Viagem atualizada parcialmente com sucesso!",
-            "viagem": viagem.to_dict(),
+            "mensagem": "iPhone atualizado parcialmente com sucesso!",
+            "iphone": iphone.to_dict()
         }, 200
 
-    # DELETE - Exclui uma viagem
+
+    # DELETE - Exclui um iPhone
     def delete(self, id):
-        viagem = db.session.get(Viagem, id)
 
-        if not viagem:
-            return {"mensagem": "Viagem não encontrada."}, 404
+        iphone = db.session.get(IPhone, id)
 
-        db.session.delete(viagem)
+        if not iphone:
+            return {
+                "mensagem": "iPhone não encontrado."
+            }, 404
+
+        db.session.delete(iphone)
         db.session.commit()
 
-        return {"mensagem": "Viagem excluída com sucesso!"}, 200
+        return {
+            "mensagem": "iPhone excluído com sucesso!"
+        }, 200
 
 
-# Cria as tabelas do banco caso ainda não existam
+# ============================================================
+# API EXTERNA - COTAÇÃO DE MOEDAS
+# ============================================================
+
+@api.route("/cotacao/<moeda>")
+class Cotacao(Resource):
+
+    def get(self, moeda):
+
+        moeda = moeda.upper()
+
+        # Real não precisa ser convertido
+        if moeda == "BRL":
+            return {
+                "moeda_origem": "BRL",
+                "moeda_destino": "BRL",
+                "cotacao": 1.0
+            }, 200
+
+        url = "https://api.frankfurter.dev/v2/rates"
+
+        parametros = {
+            "base": moeda,
+            "quotes": "BRL"
+        }
+
+        try:
+
+            resposta = requests.get(
+                url,
+                params=parametros,
+                timeout=10
+            )
+
+            resposta.raise_for_status()
+
+            dados = resposta.json()
+
+            if not dados:
+                return {
+                    "mensagem": "Cotação não encontrada."
+                }, 404
+
+            cotacao = dados[0]["rate"]
+
+            return {
+                "moeda_origem": moeda,
+                "moeda_destino": "BRL",
+                "cotacao": cotacao
+            }, 200
+
+        except requests.RequestException:
+
+            return {
+                "mensagem": "Erro ao consultar a API de cotação."
+            }, 502
+
+
+# ============================================================
+# PREÇO DO IPHONE CONVERTIDO PARA REAL
+# ============================================================
+
+@api.route("/iphones/<int:id>/preco-convertido")
+class PrecoConvertido(Resource):
+
+    def get(self, id):
+
+        # Busca o iPhone no SQLite
+        iphone = db.session.get(IPhone, id)
+
+        if not iphone:
+            return {
+                "mensagem": "iPhone não encontrado."
+            }, 404
+
+
+        moeda = iphone.moeda.upper()
+
+
+        # ====================================================
+        # SE JÁ FOR BRL
+        # ====================================================
+
+        if moeda == "BRL":
+
+            return {
+                "iphone": iphone.to_dict(),
+                "cotacao": 1.0,
+                "preco_em_reais": iphone.preco
+            }, 200
+
+
+        # ====================================================
+        # CONSULTA A API EXTERNA DE CÂMBIO
+        # ====================================================
+
+        url_cotacao = "https://api.frankfurter.dev/v2/rates"
+
+        parametros = {
+            "base": moeda,
+            "quotes": "BRL"
+        }
+
+        try:
+
+            resposta_cotacao = requests.get(
+                url_cotacao,
+                params=parametros,
+                timeout=10
+            )
+
+            resposta_cotacao.raise_for_status()
+
+            dados_cotacao = resposta_cotacao.json()
+
+            if not dados_cotacao:
+                return {
+                    "mensagem": "Não foi possível obter a cotação."
+                }, 502
+
+            cotacao = dados_cotacao[0]["rate"]
+
+
+        except requests.RequestException:
+
+            return {
+                "mensagem": "Erro ao consultar a API externa de câmbio."
+            }, 502
+
+
+        # ====================================================
+        # ENVIA PARA A API SECUNDÁRIA
+        # ====================================================
+
+        dados_conversao = {
+            "preco": iphone.preco,
+            "cotacao": cotacao,
+            "moeda": moeda
+        }
+
+        try:
+
+            resposta_secundaria = requests.post(
+                f"{COMPARACAO_SERVICE_URL}/converter-preco",
+                json=dados_conversao,
+                timeout=10
+            )
+
+            resposta_secundaria.raise_for_status()
+
+            resultado = resposta_secundaria.json()
+
+
+        except requests.RequestException:
+
+            return {
+                "mensagem": (
+                    "Erro ao comunicar com a API Secundária."
+                )
+            }, 502
+
+
+        # ====================================================
+        # RESPOSTA FINAL
+        # ====================================================
+
+        return {
+            "iphone": iphone.to_dict(),
+            "cotacao": cotacao,
+            "conversao": resultado
+        }, 200
+
+
+# ============================================================
+# CRIA AS TABELAS DO BANCO
+# ============================================================
+
 with app.app_context():
     db.create_all()
 
 
-@api.route("/viagens/<int:id>/planejamento")
-class PlanejamentoViagem(Resource):
-
-    def get(self, id):
-        viagem = db.session.get(Viagem, id)
-
-        if not viagem:
-            return {"mensagem": "Viagem não encontrada."}, 404
-
-        data_inicio = datetime.strptime(viagem.data_inicio, "%Y-%m-%d")
-
-        data_fim = datetime.strptime(viagem.data_fim, "%Y-%m-%d")
-
-        dias = (data_fim - data_inicio).days
-
-        dados = {
-            "destino": viagem.destino,
-            "dias": dias,
-            "orcamento": viagem.orcamento,
-        }
-
-        resposta = requests.post(
-            f"{PLANEJAMENTO_SERVICE_URL}/planejamento", json=dados
-        )
-
-        return resposta.json(), resposta.status_code
-
-
-@api.route("/clima")
-class Clima(Resource):
-
-    parser = api.parser()
-
-    parser.add_argument(
-        "latitude", type=float, required=True, location="args"
-    )
-
-    parser.add_argument(
-        "longitude", type=float, required=True, location="args"
-    )
-
-    @api.expect(parser)
-    def get(self):
-
-        args = self.parser.parse_args()
-
-        latitude = args["latitude"]
-        longitude = args["longitude"]
-
-        url = "https://api.open-meteo.com/v1/forecast"
-
-        parametros = {
-            "latitude": latitude,
-            "longitude": longitude,
-            "current": "temperature_2m,wind_speed_10m",
-        }
-
-        resposta = requests.get(url, params=parametros)
-
-        dados = resposta.json()
-
-        return {
-            "latitude": latitude,
-            "longitude": longitude,
-            "temperatura": dados["current"]["temperature_2m"],
-            "velocidade_vento": dados["current"]["wind_speed_10m"],
-        }, 200
-
+# ============================================================
+# EXECUÇÃO
+# ============================================================
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )
