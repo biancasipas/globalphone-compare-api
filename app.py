@@ -397,6 +397,110 @@ class PrecoConvertido(Resource):
         }, 200
 
 
+
+# ============================================================
+# COMPARAR DOIS IPHONES
+# ============================================================
+
+@api.route("/iphones/comparar/<int:id1>/<int:id2>")
+class CompararIPhones(Resource):
+
+    def get(self, id1, id2):
+
+        iphone1 = db.session.get(IPhone, id1)
+        iphone2 = db.session.get(IPhone, id2)
+
+        if not iphone1 or not iphone2:
+            return {
+                "mensagem": "Um dos iPhones não foi encontrado."
+            }, 404
+
+        def converter_para_real(iphone):
+
+            moeda = iphone.moeda.upper()
+
+            if moeda == "BRL":
+                return iphone.preco
+
+            url = "https://api.frankfurter.dev/v2/rates"
+
+            parametros = {
+                "base": moeda,
+                "quotes": "BRL"
+            }
+
+            resposta_cotacao = requests.get(
+                url,
+                params=parametros,
+                timeout=10
+            )
+
+            resposta_cotacao.raise_for_status()
+
+            dados_cotacao = resposta_cotacao.json()
+
+            if not dados_cotacao:
+                raise requests.RequestException(
+                    "Cotação não encontrada."
+                )
+
+            cotacao = dados_cotacao[0]["rate"]
+
+            dados_conversao = {
+                "preco": iphone.preco,
+                "cotacao": cotacao,
+                "moeda": moeda
+            }
+
+            resposta_secundaria = requests.post(
+                f"{COMPARACAO_SERVICE_URL}/converter-preco",
+                json=dados_conversao,
+                timeout=10
+            )
+
+            resposta_secundaria.raise_for_status()
+
+            resultado_conversao = resposta_secundaria.json()
+
+            return resultado_conversao["preco_em_reais"]
+
+        try:
+
+            preco1_real = converter_para_real(iphone1)
+            preco2_real = converter_para_real(iphone2)
+
+            dados_comparacao = {
+                "pais_1": iphone1.pais,
+                "preco_1": preco1_real,
+                "pais_2": iphone2.pais,
+                "preco_2": preco2_real
+            }
+
+            resposta_comparacao = requests.post(
+                f"{COMPARACAO_SERVICE_URL}/comparar-precos",
+                json=dados_comparacao,
+                timeout=10
+            )
+
+            resposta_comparacao.raise_for_status()
+
+            resultado = resposta_comparacao.json()
+
+            return {
+                "iphone_1": iphone1.to_dict(),
+                "preco_em_reais_1": preco1_real,
+                "iphone_2": iphone2.to_dict(),
+                "preco_em_reais_2": preco2_real,
+                "comparacao": resultado
+            }, 200
+
+        except requests.RequestException:
+
+            return {
+                "mensagem": "Erro ao realizar a comparação."
+            }, 502
+
+
 # ============================================================
 # CRIA AS TABELAS DO BANCO
 # ============================================================
