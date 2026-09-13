@@ -1,19 +1,26 @@
-# Travel Planner API
+# GlobalPhone Compare API
 
-API principal do MVP de planejamento e gerenciamento de viagens.
+API Principal do MVP **GlobalPhone Compare**, uma aplicação desenvolvida para cadastrar e comparar preços de iPhones em diferentes países.
 
-A aplicação é responsável pelo cadastro e gerenciamento de viagens, persistência dos dados, comunicação com uma API Secundária de planejamento e integração com uma API externa para consulta de informações climáticas.
+O sistema permite armazenar informações de preços em diferentes moedas, consultar taxas de câmbio, converter os valores para Real (BRL) e comparar dois registros para identificar em qual país o iPhone apresenta o menor preço.
+
+O projeto utiliza uma arquitetura composta por uma **API Principal**, uma **API Secundária**, uma **API Externa de câmbio** e persistência de dados com **SQLite**.
 
 ## Funcionalidades
 
-- Cadastro de viagens
-- Listagem de viagens
-- Atualização completa de viagens
-- Atualização parcial de viagens
-- Exclusão de viagens
+- Cadastro de preços de iPhones
+- Listagem dos iPhones cadastrados
+- Atualização completa de registros
+- Atualização parcial de registros
+- Exclusão de registros
 - Persistência de dados com SQLite
-- Integração com API Secundária para planejamento da viagem
-- Integração com API externa Open-Meteo para consulta de clima
+- Consulta de cotação de moedas
+- Conversão de preços para Real (BRL)
+- Comparação de preços entre dois países
+- Identificação da opção mais econômica
+- Cálculo da economia entre os preços comparados
+- Integração REST com API Secundária
+- Integração com API externa de câmbio Frankfurter
 - Documentação interativa com Swagger
 - Execução com Docker
 - Orquestração dos serviços com Docker Compose
@@ -43,93 +50,174 @@ travel-planner-api/
 ├── database/
 │   └── db.py
 └── models/
-    └── viagem.py
+    └── iphone.py
 ```
+
+> O diretório do repositório ainda utiliza o nome `travel-planner-api`, porém a aplicação implementada corresponde ao MVP GlobalPhone Compare.
 
 ## Banco de Dados
 
-O projeto utiliza **SQLite** como banco de dados.
+O projeto utiliza **SQLite** para persistência dos dados.
 
-- **Arquivo gerado:** `travel_planner.db`
-- **URI de conexão:** `sqlite:///travel_planner.db`
+- **Banco:** `globalphone.db`
+- **URI de conexão:** `sqlite:///globalphone.db`
 
-O banco é utilizado pela API Principal para armazenar as viagens cadastradas.
+Cada registro de iPhone possui os seguintes dados:
 
-## Rotas da API
+- ID
+- Modelo
+- Armazenamento
+- Cor
+- País
+- Moeda
+- Preço
 
-A API Principal disponibiliza os seguintes endpoints:
+Exemplo:
+
+```json
+{
+  "id": 1,
+  "modelo": "iPhone 17 Pro",
+  "armazenamento": "256 GB",
+  "cor": "Prata",
+  "pais": "Estados Unidos",
+  "moeda": "USD",
+  "preco": 1099
+}
+```
+
+## Rotas da API Principal
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| `GET` | `/` | Verifica se a API está funcionando |
-| `GET` | `/viagens` | Lista todas as viagens cadastradas |
-| `POST` | `/viagens` | Cadastra uma nova viagem |
-| `PUT` | `/viagens/{id}` | Atualiza todos os dados de uma viagem |
-| `PATCH` | `/viagens/{id}` | Atualiza parcialmente uma viagem |
-| `DELETE` | `/viagens/{id}` | Exclui uma viagem |
-| `GET` | `/viagens/{id}/planejamento` | Consulta o planejamento através da API Secundária |
-| `GET` | `/clima` | Consulta dados climáticos através da Open-Meteo |
+| `GET` | `/` | Verifica se a API Principal está funcionando |
+| `GET` | `/iphones` | Lista todos os iPhones cadastrados |
+| `POST` | `/iphones` | Cadastra um novo iPhone |
+| `PUT` | `/iphones/{id}` | Atualiza completamente um registro |
+| `PATCH` | `/iphones/{id}` | Atualiza parcialmente um registro |
+| `DELETE` | `/iphones/{id}` | Exclui um registro |
+| `GET` | `/cotacao/{moeda}` | Consulta a cotação da moeda para BRL |
+| `GET` | `/iphones/{id}/preco-convertido` | Converte o preço do iPhone para Real |
+| `GET` | `/iphones/comparar/{id1}/{id2}` | Compara dois iPhones cadastrados |
 
-## Exemplo de Cadastro de Viagem
+## Exemplo de Cadastro
 
 Endpoint:
 
 ```text
-POST /viagens
+POST /iphones
 ```
 
 Exemplo de payload:
 
 ```json
 {
-  "destino": "Roma",
-  "data_inicio": "2027-05-10",
-  "data_fim": "2027-05-20",
-  "orcamento": 14000
+  "modelo": "iPhone 17 Pro",
+  "armazenamento": "256 GB",
+  "cor": "Prata",
+  "pais": "Estados Unidos",
+  "moeda": "USD",
+  "preco": 1099
 }
 ```
 
-## Integração com a API Secundária
+Os valores utilizados nos exemplos são dados de demonstração do MVP e não representam necessariamente os preços oficiais atuais dos produtos.
 
-A API Principal se comunica via REST com o serviço:
+## Consulta de Cotação
 
-```text
-travel-planner-service
-```
+A API Principal disponibiliza uma rota para consultar a conversão de uma moeda para Real.
 
-A integração é utilizada pelo endpoint:
+Exemplo:
 
 ```text
-GET /viagens/{id}/planejamento
+GET /cotacao/USD
 ```
-
-A API Principal recupera os dados da viagem armazenados no SQLite e envia as informações necessárias para a API Secundária.
-
-A API Secundária realiza o processamento do planejamento e retorna informações como:
-
-- Destino
-- Quantidade de dias
-- Orçamento total
-- Gasto médio por dia
 
 Exemplo de resposta:
 
 ```json
 {
-  "destino": "Roma",
-  "dias": 10,
-  "orcamento": 14000,
-  "gasto_por_dia": 1400
+  "moeda_origem": "USD",
+  "moeda_destino": "BRL",
+  "cotacao": 5.1053
 }
 ```
 
-### Comunicação local
+A cotação apresentada acima é apenas um exemplo. O valor retornado depende dos dados disponibilizados pela API externa no momento da consulta.
 
-Durante a execução local, a API Secundária está disponível em:
+## Conversão do Preço
+
+O endpoint:
+
+```text
+GET /iphones/{id}/preco-convertido
+```
+
+realiza o fluxo de integração entre os componentes.
+
+A API Principal:
+
+1. Busca o iPhone no SQLite.
+2. Identifica a moeda do registro.
+3. Consulta a cotação para BRL através da API externa Frankfurter.
+4. Envia o preço e a cotação para a API Secundária.
+5. A API Secundária realiza o cálculo da conversão.
+6. O resultado é retornado pela API Principal.
+
+Quando o registro já utiliza `BRL`, não é necessário consultar uma taxa de conversão.
+
+## Comparação entre Países
+
+O endpoint:
+
+```text
+GET /iphones/comparar/{id1}/{id2}
+```
+
+permite comparar dois registros cadastrados.
+
+Exemplo:
+
+```text
+GET /iphones/comparar/1/2
+```
+
+Nesse fluxo, a aplicação recupera os dois iPhones no banco de dados, converte os valores necessários para Real e utiliza a API Secundária para realizar a comparação.
+
+Exemplo simplificado de resultado:
+
+```json
+{
+  "comparacao": {
+    "pais_1": "Estados Unidos",
+    "preco_1": 5610.72,
+    "pais_2": "Brasil",
+    "preco_2": 11999,
+    "melhor_opcao": "Estados Unidos",
+    "economia": 6388.28
+  }
+}
+```
+
+Os valores acima são apenas exemplos baseados nos dados de teste utilizados durante o desenvolvimento.
+
+## Integração com a API Secundária
+
+A API Principal se comunica via REST com o **GlobalPhone Compare Service**.
+
+Durante a execução local, o endereço padrão utilizado é:
 
 ```text
 http://127.0.0.1:5001
 ```
+
+A API Secundária é responsável por operações como:
+
+- conversão de preços;
+- comparação entre dois preços;
+- identificação da melhor opção;
+- cálculo da economia;
+- classificação de preços.
 
 ### Comunicação no Docker Compose
 
@@ -139,35 +227,35 @@ Dentro da rede criada pelo Docker Compose, a API Principal utiliza:
 http://api-secundaria:5001
 ```
 
-A URL do serviço é configurada através da variável de ambiente:
+A URL é configurada através da variável de ambiente:
 
 ```text
-PLANEJAMENTO_SERVICE_URL
+COMPARACAO_SERVICE_URL
 ```
 
-Isso permite utilizar uma URL durante a execução local e outra durante a execução em containers.
-
-## API Externa - Open-Meteo
-
-A aplicação utiliza a **Open-Meteo Forecast API** para consultar informações climáticas.
-
-A integração é realizada através do endpoint da API Principal:
+No `docker-compose.yml`:
 
 ```text
-GET /clima
+COMPARACAO_SERVICE_URL=http://api-secundaria:5001
 ```
+
+Dessa forma, a mesma aplicação pode utilizar o endereço local durante o desenvolvimento e o nome do serviço durante a execução em containers.
+
+## API Externa - Frankfurter
+
+O projeto utiliza a **Frankfurter API** para obter taxas de câmbio utilizadas na conversão dos preços dos iPhones para Real (BRL).
 
 ### Serviço utilizado
 
-**Open-Meteo Forecast API**
+Frankfurter Exchange Rates API.
 
 ### Endpoint externo utilizado
 
 ```text
-https://api.open-meteo.com/v1/forecast
+https://api.frankfurter.dev/v2/rates
 ```
 
-### Método utilizado
+### Método
 
 ```text
 GET
@@ -175,67 +263,61 @@ GET
 
 ### Parâmetros utilizados
 
-- `latitude`
-- `longitude`
-- `current=temperature_2m,wind_speed_10m`
+A aplicação utiliza principalmente:
+
+```text
+base
+quotes
+```
+
+Exemplo conceitual:
+
+```text
+base=USD
+quotes=BRL
+```
+
+Nesse caso, a aplicação solicita a taxa de conversão da moeda `USD` para `BRL`.
 
 ### Dados utilizados pela aplicação
 
-A aplicação utiliza os seguintes dados retornados pela Open-Meteo:
-
-- Temperatura atual
-- Velocidade atual do vento
-
-### Exemplo de chamada na API Principal
+Do resultado retornado pela API, o GlobalPhone Compare utiliza principalmente:
 
 ```text
-GET /clima?latitude=-19.92&longitude=-43.94
+rate
 ```
 
-Exemplo de resposta:
-
-```json
-{
-  "latitude": -19.92,
-  "longitude": -43.94,
-  "temperatura": 18.5,
-  "velocidade_vento": 13.2
-}
-```
+Essa taxa é utilizada para realizar a conversão do preço do produto.
 
 ### Autenticação e cadastro
 
-Para o uso gratuito e não comercial utilizado neste MVP:
+Para utilizar a API pública Frankfurter neste MVP:
 
-- Não é necessário cadastro
-- Não é necessária chave de API
-- A API pode ser consumida diretamente através de requisições HTTP
+- não é necessária chave de API;
+- não é necessário cadastro;
+- as consultas podem ser realizadas através de requisições HTTPS.
 
-### Licença e condições de uso
+### Características do serviço
 
-Os dados fornecidos pela Open-Meteo são disponibilizados sob a licença **Creative Commons Attribution 4.0 International (CC BY 4.0)**.
+A Frankfurter fornece dados de taxas de câmbio atuais e históricas e utiliza dados provenientes de bancos centrais e outras fontes oficiais.
 
-A API gratuita é destinada a uso não comercial e possui limites de utilização definidos pelo serviço. A atribuição à Open-Meteo é necessária conforme as condições da licença.
+O projeto Frankfurter é open source.
 
-Este projeto utiliza a API exclusivamente para fins acadêmicos e de demonstração do MVP.
+Para este MVP, a API é utilizada exclusivamente para fins acadêmicos e de demonstração.
 
 ### Documentação oficial
 
-Open-Meteo Weather Forecast API:
+Frankfurter:
 
-https://open-meteo.com/en/docs
+https://frankfurter.dev/
 
-Termos de uso:
+API pública:
 
-https://open-meteo.com/en/terms
-
-Site oficial:
-
-https://open-meteo.com/
+https://api.frankfurter.dev/
 
 ## Swagger UI
 
-A documentação interativa da API é disponibilizada através do Swagger.
+A documentação interativa é disponibilizada através do Swagger.
 
 Com a API Principal em execução, acesse:
 
@@ -243,7 +325,7 @@ Com a API Principal em execução, acesse:
 http://127.0.0.1:5000/
 ```
 
-A interface permite visualizar e testar diretamente os endpoints disponíveis.
+O Swagger permite visualizar e testar diretamente os endpoints da aplicação.
 
 ## Como Executar
 
@@ -255,9 +337,7 @@ A interface permite visualizar e testar diretamente os endpoints disponíveis.
 - pip
 - Ambiente virtual Python
 
-Ative o ambiente virtual.
-
-No PowerShell:
+Ative o ambiente virtual no PowerShell:
 
 ```powershell
 .venv\Scripts\Activate.ps1
@@ -269,52 +349,44 @@ Instale as dependências:
 pip install -r requirements.txt
 ```
 
-Execute a aplicação:
+Execute a API Principal:
 
 ```bash
 python app.py
 ```
 
-A API Principal estará disponível em:
+A aplicação estará disponível em:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-A API Secundária deverá estar executando separadamente na porta `5001` para utilizar a funcionalidade de planejamento.
+Para utilizar as funcionalidades que dependem da API Secundária, o GlobalPhone Compare Service também deverá estar executando na porta `5001`.
 
 ## 2. Execução via Docker
 
 Construa a imagem da API Principal:
 
 ```bash
-docker build -t travel-planner-api .
+docker build -t globalphone-api .
 ```
 
 Execute o container:
 
 ```bash
-docker run -p 5000:5000 travel-planner-api
+docker run -p 5000:5000 globalphone-api
 ```
 
-A API estará disponível em:
-
-```text
-http://127.0.0.1:5000
-```
-
-> Para utilizar a integração com a API Secundária através de containers, recomenda-se utilizar o Docker Compose descrito abaixo.
+Para executar a arquitetura completa com comunicação entre a API Principal e a API Secundária, utilize o Docker Compose.
 
 ## 3. Execução via Docker Compose
 
-O Docker Compose executa de forma integrada:
+O Docker Compose executa os dois componentes desenvolvidos:
 
-- Travel Planner API - API Principal
-- Travel Planner Service - API Secundária
+- GlobalPhone Compare API - API Principal
+- GlobalPhone Compare Service - API Secundária
 
-Os dois serviços são executados na mesma rede Docker, permitindo a comunicação entre os containers.
-
-Na raiz do projeto `travel-planner-api`, execute:
+Na raiz do projeto, execute:
 
 ```bash
 docker compose up --build
@@ -349,49 +421,62 @@ docker compose down
 
 ## Arquitetura da Solução
 
-O MVP é composto por três componentes:
+O MVP possui três componentes principais e um mecanismo de persistência:
 
 ```mermaid
 flowchart LR
-    A["Travel Planner API<br/>API Principal"]
-    B["Travel Planner Service<br/>API Secundária"]
-    C["Open-Meteo<br/>API Externa"]
+    U["Usuário"]
+    A["GlobalPhone Compare API<br/>API Principal"]
+    B["GlobalPhone Compare Service<br/>API Secundária"]
+    C["Frankfurter<br/>API Externa"]
     D[("SQLite")]
 
+    U --> A
     A -->|"REST"| B
-    A -->|"HTTP GET"| C
+    A -->|"HTTPS / REST"| C
     A -->|"Persistência"| D
 ```
 
-### Fluxo de Comunicação
+## Fluxo de Comunicação
 
-1. O usuário realiza operações através da **Travel Planner API**.
-2. A API Principal armazena e consulta as viagens utilizando **SQLite**.
-3. Para gerar o planejamento, a API Principal envia os dados da viagem para a **Travel Planner Service** através de REST.
-4. A API Secundária realiza os cálculos e retorna o planejamento para a API Principal.
-5. Para consultar informações climáticas, a API Principal realiza uma requisição HTTP para a **Open-Meteo**.
-6. Todos os endpoints podem ser visualizados e testados através do **Swagger UI**.
+1. O usuário realiza as operações através da API Principal.
+2. A API Principal consulta e armazena os registros utilizando SQLite.
+3. Quando uma conversão é necessária, a API Principal consulta a Frankfurter para obter a taxa de câmbio.
+4. A API Principal envia os dados necessários para a API Secundária.
+5. A API Secundária realiza os cálculos de conversão ou comparação.
+6. A API Principal reúne as informações e retorna o resultado.
+7. Os endpoints podem ser visualizados e testados através do Swagger UI.
 
 ## Docker Compose
 
-A comunicação entre os serviços dentro do Docker utiliza a variável:
+A comunicação entre os containers utiliza:
 
 ```text
-PLANEJAMENTO_SERVICE_URL=http://api-secundaria:5001
+COMPARACAO_SERVICE_URL=http://api-secundaria:5001
 ```
 
-Dessa forma, a API Principal consegue localizar a API Secundária através do nome do serviço definido no `docker-compose.yml`.
+O nome `api-secundaria` corresponde ao serviço definido no arquivo `docker-compose.yml`.
 
 ## Objetivo do MVP
 
-O objetivo deste projeto é demonstrar uma arquitetura componentizada para um sistema de planejamento de viagens, utilizando:
+O objetivo do **GlobalPhone Compare** é demonstrar uma arquitetura componentizada capaz de integrar diferentes serviços para resolver um problema de comparação de preços internacionais.
+
+A solução demonstra o uso de:
 
 - API REST
 - Comunicação entre serviços
 - Persistência de dados
 - API externa
+- Conversão de moedas
+- Comparação de preços
 - Swagger
 - Docker
 - Docker Compose
 
-A solução demonstra a comunicação entre módulos independentes e a integração de diferentes serviços através de APIs.
+A arquitetura permite demonstrar a comunicação entre módulos independentes, persistência local e consumo de dados externos em um único fluxo.
+
+## Autora
+
+**Bianca Maria Fernandes Alves**
+
+Projeto desenvolvido como MVP da Pós-Graduação em Desenvolvimento Full Stack da PUC-Rio.
