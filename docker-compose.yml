@@ -1,17 +1,17 @@
 services:
   api-principal:
     build: .
-    container_name: travel-planner-api
+    container_name: globalphone-api
     ports:
       - "5000:5000"
     environment:
-      - PLANEJAMENTO_SERVICE_URL=http://api-secundaria:5001
+      - COMPARACAO_SERVICE_URL=http://api-secundaria:5001
     depends_on:
       - api-secundaria
 
   api-secundaria:
     build:
       context: ../travel-planner-service
-    container_name: travel-planner-service
+    container_name: globalphone-service
     ports:
       - "5001:5001"
