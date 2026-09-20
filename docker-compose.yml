@@ -1,6 +1,7 @@
 services:
   api-principal:
     build: .
+    image: globalphone-compare-api
     container_name: globalphone-api
     ports:
       - "5000:5000"
@@ -11,7 +12,8 @@ services:
 
   api-secundaria:
     build:
-      context: ../travel-planner-service
+      context: ../globalphone-compare-service
+    image: globalphone-compare-service
     container_name: globalphone-service
     ports:
       - "5001:5001"
