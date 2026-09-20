@@ -1,31 +1,38 @@
 # GlobalPhone Compare API
 
-API Principal do MVP **GlobalPhone Compare**, uma aplicação desenvolvida para cadastrar e comparar preços de iPhones em diferentes países.
+API Principal do MVP **GlobalPhone Compare**, uma aplicação desenvolvida para cadastrar, gerenciar e comparar preços de iPhones comercializados em diferentes países.
 
-O sistema permite armazenar informações de preços em diferentes moedas, consultar taxas de câmbio, converter os valores para Real (BRL) e comparar dois registros para identificar em qual país o iPhone apresenta o menor preço.
+O sistema permite armazenar preços em diferentes moedas, consultar taxas de câmbio, converter valores para Real (BRL) e comparar registros para identificar opções de compra.
 
-O projeto utiliza uma arquitetura composta por uma **API Principal**, uma **API Secundária**, uma **API Externa de câmbio** e persistência de dados com **SQLite**.
+O projeto utiliza uma arquitetura formada por:
 
-## Funcionalidades
+- **GlobalPhone Compare API** — API Principal
+- **GlobalPhone Compare Service** — API Secundária
+- **Frankfurter API** — API externa de câmbio
+- **SQLite** — persistência dos dados
 
-- Cadastro de preços de iPhones
+---
+
+# Funcionalidades
+
+- Cadastro de iPhones
 - Listagem dos iPhones cadastrados
-- Atualização completa de registros
-- Atualização parcial de registros
+- Atualização completa com PUT
+- Atualização parcial com PATCH
 - Exclusão de registros
-- Persistência de dados com SQLite
+- Persistência com SQLite
 - Consulta de cotação de moedas
 - Conversão de preços para Real (BRL)
-- Comparação de preços entre dois países
-- Identificação da opção mais econômica
-- Cálculo da economia entre os preços comparados
-- Integração REST com API Secundária
-- Integração com API externa de câmbio Frankfurter
+- Comparação entre dois iPhones
+- Comunicação REST com a API Secundária
+- Integração com API externa de câmbio
 - Documentação interativa com Swagger
 - Execução com Docker
 - Orquestração dos serviços com Docker Compose
 
-## Tecnologias
+---
+
+# Tecnologias
 
 - Python 3.11
 - Flask
@@ -37,55 +44,105 @@ O projeto utiliza uma arquitetura composta por uma **API Principal**, uma **API 
 - Docker
 - Docker Compose
 
-## Cenário Escolhido
+---
 
-Para o desenvolvimento do **GlobalPhone Compare**, foi escolhido o **Cenário 2** proposto no trabalho.
+# Cenário Escolhido
 
-Nesse cenário, a solução é composta por uma **API Principal** e uma **API Secundária**, que se comunicam por meio de requisições REST.
+Para o desenvolvimento do **GlobalPhone Compare**, foi utilizado o **Cenário 2** proposto no MVP.
 
-A **API Principal**, executada na porta `5000`, é responsável pelo cadastro e gerenciamento dos preços dos iPhones, persistência dos dados em SQLite, consumo da API externa de câmbio e comunicação com a API Secundária.
+Nesse cenário, a solução possui dois componentes independentes que se comunicam através de requisições REST:
 
-A **API Secundária**, executada na porta `5001`, é responsável pelas regras de negócio de conversão, comparação e classificação dos preços.
+```text
+GlobalPhone Compare API
+API Principal
+        |
+        | REST
+        v
+GlobalPhone Compare Service
+API Secundária
+```
 
-A aplicação utiliza a **Frankfurter API** como serviço externo para obtenção das taxas de câmbio.
+A **API Principal**, executada na porta `5000`, é responsável principalmente por:
 
-### Arquitetura da Solução
+- cadastrar e gerenciar os iPhones;
+- armazenar os dados em SQLite;
+- consultar cotações;
+- realizar operações CRUD;
+- comunicar-se com a API Secundária.
 
-![Arquitetura do GlobalPhone Compare - Cenário 2](docs/images/arquitetura-cenario-2.png)
+A **API Secundária**, executada na porta `5001`, concentra regras de negócio relacionadas a:
 
-A comunicação da solução ocorre da seguinte forma:
+- conversão de preços;
+- comparação entre iPhones;
+- classificação de preços;
+- cálculo de economia;
+- ranking de preços.
 
-- **API Principal → API Secundária:** comunicação REST para conversão e comparação dos preços.
-- **API Principal → Frankfurter API:** consulta das taxas de câmbio.
-- **API Principal → SQLite:** leitura e persistência dos registros de iPhones.
+A aplicação também utiliza a **Frankfurter API** para obtenção das taxas de câmbio.
 
-As duas APIs desenvolvidas são executadas em containers Docker separados.
+---
 
-## Repositórios do Projeto
+# Arquitetura da Solução
 
-O **GlobalPhone Compare** é composto por duas APIs desenvolvidas separadamente, cada uma disponibilizada em seu próprio repositório público no GitHub.
+```text
+                         Usuário
+                            |
+                            v
+               GlobalPhone Compare API
+                    API Principal
+                       /       \
+                      /         \
+                     v           v
+                  SQLite     Frankfurter
+                               API Externa
+                     |
+                     | REST
+                     v
+            GlobalPhone Compare Service
+                 API Secundária
+                     |
+                     v
+                 Frankfurter
+                 API Externa
+```
 
-### API Principal — GlobalPhone Compare API
+A API Principal e o Service podem utilizar informações de câmbio para realizar suas operações.
 
-Responsável pelo gerenciamento dos dados dos iPhones, persistência em SQLite, consumo da API externa de câmbio e integração com a API Secundária.
+---
 
+# Repositórios do Projeto
+
+O **GlobalPhone Compare** possui dois repositórios.
+
+## API Principal — GlobalPhone Compare API
+
+Responsável pelo cadastro, gerenciamento e persistência dos dados dos iPhones.
+
+```text
 https://github.com/biancasipas/globalphone-compare-api
+```
 
-### API Secundária — GlobalPhone Compare Service
+## API Secundária — GlobalPhone Compare Service
 
-Responsável pelas regras de negócio de conversão, comparação e classificação dos preços dos iPhones.
+Responsável pelas regras de negócio relacionadas à análise dos preços.
 
+```text
 https://github.com/biancasipas/globalphone-compare-service
+```
 
-## Estrutura do Projeto
+---
+
+# Estrutura do Projeto
 
 ```text
 globalphone-compare-api/
+
 ├── app.py
 ├── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .dockerignore
+├── .gitignore
 ├── README.md
 ├── database/
 │   └── db.py
@@ -93,16 +150,32 @@ globalphone-compare-api/
     └── iphone.py
 ```
 
-> O diretório do repositório ainda utiliza o nome `travel-planner-api`, porém a aplicação implementada corresponde ao MVP GlobalPhone Compare.
+## Descrição dos Arquivos
 
-## Banco de Dados
+- `app.py`: implementação da API Principal e suas rotas.
+- `database/db.py`: configuração do SQLAlchemy.
+- `models/iphone.py`: modelo utilizado para representar os iPhones.
+- `requirements.txt`: dependências Python.
+- `Dockerfile`: definição da imagem Docker da API.
+- `docker-compose.yml`: orquestra a API Principal e a API Secundária.
+- `.dockerignore`: arquivos ignorados durante o build Docker.
+- `.gitignore`: arquivos que não devem ser versionados.
+- `README.md`: documentação da aplicação.
 
-O projeto utiliza **SQLite** para persistência dos dados.
+---
 
-- **Banco:** `globalphone.db`
-- **URI de conexão:** `sqlite:///globalphone.db`
+# Banco de Dados
 
-Cada registro de iPhone possui os seguintes dados:
+O projeto utiliza **SQLite** para persistência.
+
+```text
+Banco: globalphone.db
+
+URI:
+sqlite:///globalphone.db
+```
+
+Cada registro possui:
 
 - ID
 - Modelo
@@ -126,29 +199,49 @@ Exemplo:
 }
 ```
 
-## Rotas da API Principal
+Os valores utilizados são apenas exemplos de demonstração do MVP.
+
+---
+
+# Rotas da API Principal
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| `GET` | `/` | Verifica se a API Principal está funcionando |
-| `GET` | `/iphones` | Lista todos os iPhones cadastrados |
+| `GET` | `/` | Verifica se a API está funcionando |
+| `GET` | `/iphones` | Lista todos os iPhones |
 | `POST` | `/iphones` | Cadastra um novo iPhone |
 | `PUT` | `/iphones/{id}` | Atualiza completamente um registro |
 | `PATCH` | `/iphones/{id}` | Atualiza parcialmente um registro |
-| `DELETE` | `/iphones/{id}` | Exclui um registro |
+| `DELETE` | `/iphones/{id}` | Exclui um iPhone |
 | `GET` | `/cotacao/{moeda}` | Consulta a cotação da moeda para BRL |
 | `GET` | `/iphones/{id}/preco-convertido` | Converte o preço do iPhone para Real |
 | `GET` | `/iphones/comparar/{id1}/{id2}` | Compara dois iPhones cadastrados |
 
-## Exemplo de Cadastro
+---
 
-Endpoint:
+# CRUD
+
+A API implementa as principais operações de CRUD.
+
+## GET
+
+Consulta os registros.
+
+```text
+GET /iphones
+```
+
+---
+
+## POST
+
+Cadastra um novo iPhone.
 
 ```text
 POST /iphones
 ```
 
-Exemplo de payload:
+Exemplo:
 
 ```json
 {
@@ -161,11 +254,66 @@ Exemplo de payload:
 }
 ```
 
-Os valores utilizados nos exemplos são dados de demonstração do MVP e não representam necessariamente os preços oficiais atuais dos produtos.
+---
 
-## Consulta de Cotação
+## PUT
 
-A API Principal disponibiliza uma rota para consultar a conversão de uma moeda para Real.
+Realiza uma atualização completa do registro.
+
+```text
+PUT /iphones/1
+```
+
+Todos os campos devem ser informados.
+
+Exemplo:
+
+```text
+modelo: iPhone 17 Pro
+armazenamento: 256 GB
+cor: Preto
+pais: Estados Unidos
+moeda: USD
+preco: 1199
+id: 1
+```
+
+---
+
+## PATCH
+
+Realiza uma atualização parcial.
+
+```text
+PATCH /iphones/1
+```
+
+Por exemplo, para alterar somente o preço:
+
+```text
+preco: 1099
+id: 1
+```
+
+Os demais campos permanecem com seus valores anteriores.
+
+---
+
+## DELETE
+
+Exclui um registro utilizando seu ID.
+
+```text
+DELETE /iphones/1
+```
+
+---
+
+# Consulta de Cotação
+
+## GET `/cotacao/{moeda}`
+
+Consulta a taxa de conversão de uma moeda para Real.
 
 Exemplo:
 
@@ -179,42 +327,47 @@ Exemplo de resposta:
 {
   "moeda_origem": "USD",
   "moeda_destino": "BRL",
-  "cotacao": 5.1053
+  "cotacao": 5.10
 }
 ```
 
-A cotação apresentada acima é apenas um exemplo. O valor retornado depende dos dados disponibilizados pela API externa no momento da consulta.
+A cotação é obtida através de uma API externa e pode variar conforme a data da consulta.
 
-## Conversão do Preço
+---
 
-O endpoint:
+# Conversão do Preço
 
-```text
-GET /iphones/{id}/preco-convertido
-```
+## GET `/iphones/{id}/preco-convertido`
 
-realiza o fluxo de integração entre os componentes.
-
-A API Principal:
-
-1. Busca o iPhone no SQLite.
-2. Identifica a moeda do registro.
-3. Consulta a cotação para BRL através da API externa Frankfurter.
-4. Envia o preço e a cotação para a API Secundária.
-5. A API Secundária realiza o cálculo da conversão.
-6. O resultado é retornado pela API Principal.
-
-Quando o registro já utiliza `BRL`, não é necessário consultar uma taxa de conversão.
-
-## Comparação entre Países
-
-O endpoint:
+Exemplo:
 
 ```text
-GET /iphones/comparar/{id1}/{id2}
+GET /iphones/1/preco-convertido
 ```
 
-permite comparar dois registros cadastrados.
+O fluxo é:
+
+```text
+ID do iPhone
+      ↓
+SQLite
+      ↓
+Preço + moeda
+      ↓
+Consulta da cotação
+      ↓
+Conversão para BRL
+      ↓
+Resultado
+```
+
+Quando o iPhone já utiliza a moeda `BRL`, a cotação utilizada é `1.0`.
+
+---
+
+# Comparação de Dois iPhones
+
+## GET `/iphones/comparar/{id1}/{id2}`
 
 Exemplo:
 
@@ -222,300 +375,367 @@ Exemplo:
 GET /iphones/comparar/1/2
 ```
 
-Nesse fluxo, a aplicação recupera os dois iPhones no banco de dados, converte os valores necessários para Real e utiliza a API Secundária para realizar a comparação.
+A aplicação:
 
-Exemplo simplificado de resultado:
+1. Busca os dois iPhones no SQLite.
+2. Identifica as moedas.
+3. Converte os valores necessários para BRL.
+4. Envia os dados necessários ao Service.
+5. Compara os preços.
+6. Retorna a opção mais econômica.
+
+Exemplo simplificado:
 
 ```json
 {
+  "iphone_1": {
+    "modelo": "iPhone 17 Pro",
+    "pais": "Estados Unidos"
+  },
+  "preco_em_reais_1": 5604.90,
+  "iphone_2": {
+    "modelo": "iPhone 17 Pro",
+    "pais": "Brasil"
+  },
+  "preco_em_reais_2": 11999,
   "comparacao": {
-    "pais_1": "Estados Unidos",
-    "preco_1": 5610.72,
-    "pais_2": "Brasil",
-    "preco_2": 11999,
     "melhor_opcao": "Estados Unidos",
-    "economia": 6388.28
+    "economia": 6394.10
   }
 }
 ```
 
-Os valores acima são apenas exemplos baseados nos dados de teste utilizados durante o desenvolvimento.
+---
 
-## Integração com a API Secundária
+# API Externa — Frankfurter
 
-A API Principal se comunica via REST com o **GlobalPhone Compare Service**.
+O projeto utiliza a **Frankfurter API** para obter taxas de câmbio.
 
-Durante a execução local, o endereço padrão utilizado é:
-
-```text
-http://127.0.0.1:5001
-```
-
-A API Secundária é responsável por operações como:
-
-- conversão de preços;
-- comparação entre dois preços;
-- identificação da melhor opção;
-- cálculo da economia;
-- classificação de preços.
-
-### Comunicação no Docker Compose
-
-Dentro da rede criada pelo Docker Compose, a API Principal utiliza:
-
-```text
-http://api-secundaria:5001
-```
-
-A URL é configurada através da variável de ambiente:
-
-```text
-COMPARACAO_SERVICE_URL
-```
-
-No `docker-compose.yml`:
-
-```text
-COMPARACAO_SERVICE_URL=http://api-secundaria:5001
-```
-
-Dessa forma, a mesma aplicação pode utilizar o endereço local durante o desenvolvimento e o nome do serviço durante a execução em containers.
-
-## API Externa - Frankfurter
-
-O projeto utiliza a **Frankfurter API** para obter taxas de câmbio utilizadas na conversão dos preços dos iPhones para Real (BRL).
-
-### Serviço utilizado
-
-Frankfurter Exchange Rates API.
-
-### Endpoint externo utilizado
+## Endpoint utilizado
 
 ```text
 https://api.frankfurter.dev/v2/rates
 ```
 
-### Método
+## Método
 
 ```text
 GET
 ```
 
-### Parâmetros utilizados
+## Parâmetros
 
-A aplicação utiliza principalmente:
+A aplicação utiliza:
 
 ```text
 base
 quotes
 ```
 
-Exemplo conceitual:
+Exemplo:
 
 ```text
 base=USD
 quotes=BRL
 ```
 
-Nesse caso, a aplicação solicita a taxa de conversão da moeda `USD` para `BRL`.
+Nesse caso, é solicitada a taxa de conversão de USD para BRL.
 
-### Dados utilizados pela aplicação
-
-Do resultado retornado pela API, o GlobalPhone Compare utiliza principalmente:
+A aplicação utiliza principalmente o campo:
 
 ```text
 rate
 ```
 
-Essa taxa é utilizada para realizar a conversão do preço do produto.
+para realizar o cálculo.
 
-### Autenticação e cadastro
+---
 
-Para utilizar a API pública Frankfurter neste MVP:
+# Frankfurter API
+
+Para utilização neste MVP:
 
 - não é necessária chave de API;
 - não é necessário cadastro;
-- as consultas podem ser realizadas através de requisições HTTPS.
+- a comunicação ocorre através de HTTPS.
 
-### Características do serviço
+Documentação:
 
-A Frankfurter fornece dados de taxas de câmbio atuais e históricas e utiliza dados provenientes de bancos centrais e outras fontes oficiais.
-
-O projeto Frankfurter é open source.
-
-Para este MVP, a API é utilizada exclusivamente para fins acadêmicos e de demonstração.
-
-### Documentação oficial
-
-Frankfurter:
-
+```text
 https://frankfurter.dev/
+```
 
-API pública:
+API:
 
+```text
 https://api.frankfurter.dev/
+```
 
-## Swagger UI
+---
 
-A documentação interativa é disponibilizada através do Swagger.
+# Integração com o GlobalPhone Compare Service
 
-Com a API Principal em execução, acesse:
+Durante a execução local, a API Principal utiliza:
+
+```text
+http://127.0.0.1:5001
+```
+
+A configuração é realizada através da variável de ambiente:
+
+```text
+COMPARACAO_SERVICE_URL
+```
+
+O endereço padrão no código é:
+
+```text
+http://127.0.0.1:5001
+```
+
+---
+
+# API Secundária
+
+O **GlobalPhone Compare Service** disponibiliza rotas como:
+
+```text
+GET /
+GET /converter-preco/{id}
+GET /classificar-preco/{id}
+GET /comparar-precos/{id1}/{id2}
+GET /calcular-economia/{id1}/{id2}
+GET /ranking-precos
+```
+
+Esses endpoints utilizam os dados cadastrados na API Principal.
+
+Por exemplo:
+
+```text
+GET /converter-preco/1
+```
+
+O Service busca automaticamente o iPhone de ID `1` na API Principal e realiza a conversão.
+
+---
+
+# Ranking
+
+O Service também disponibiliza:
+
+```text
+GET /ranking-precos
+```
+
+Não é necessário informar parâmetros.
+
+O Service:
+
+1. Busca os iPhones cadastrados na API Principal.
+2. Converte os valores para BRL.
+3. Ordena do menor preço para o maior.
+4. Retorna o ranking.
+
+---
+
+# Swagger UI
+
+Com a API Principal em execução:
 
 ```text
 http://127.0.0.1:5000/
 ```
 
-O Swagger permite visualizar e testar diretamente os endpoints da aplicação.
+O Swagger permite visualizar e testar os endpoints da aplicação.
 
-## Como Executar
+---
 
-### 1. Execução Local
+# Como Executar Localmente
 
-#### Pré-requisitos
+## Pré-requisitos
 
 - Python 3.11
 - pip
 - Ambiente virtual Python
 
-Ative o ambiente virtual no PowerShell:
+## 1. Criar o ambiente virtual
+
+```powershell
+python -m venv .venv
+```
+
+## 2. Ativar
 
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
 
-Instale as dependências:
+## 3. Instalar as dependências
 
-```bash
+```powershell
 pip install -r requirements.txt
 ```
 
-Execute a API Principal:
+## 4. Executar a API Principal
 
-```bash
+```powershell
 python app.py
 ```
 
-A aplicação estará disponível em:
+A API ficará disponível em:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-Para utilizar as funcionalidades que dependem da API Secundária, o GlobalPhone Compare Service também deverá estar executando na porta `5001`.
+Para utilizar todas as funcionalidades integradas, o **GlobalPhone Compare Service** também deve estar em execução na porta `5001`.
 
-## 2. Execução via Docker
+---
 
-Construa a imagem da API Principal:
+# Execução do Service
 
-```bash
-docker build -t globalphone-api .
+Em outro terminal:
+
+```powershell
+cd globalphone-compare-service
 ```
 
-Execute o container:
+Ative o ambiente virtual e execute:
 
-```bash
-docker run -p 5000:5000 globalphone-api
+```powershell
+python app.py
 ```
 
-Para executar a arquitetura completa com comunicação entre a API Principal e a API Secundária, utilize o Docker Compose.
+O Service ficará disponível em:
 
-## 3. Execução via Docker Compose
+```text
+http://127.0.0.1:5001
+```
 
-O Docker Compose executa os dois componentes desenvolvidos:
+---
 
-- GlobalPhone Compare API - API Principal
-- GlobalPhone Compare Service - API Secundária
+# Docker
 
-Na raiz do projeto, execute:
+## Construir a API Principal
+
+```bash
+docker build -t globalphone-compare-api .
+```
+
+## Executar
+
+```bash
+docker run -p 5000:5000 globalphone-compare-api
+```
+
+---
+
+# Docker Compose
+
+O `docker-compose.yml` permite executar os dois componentes:
+
+```text
+GlobalPhone Compare API
+GlobalPhone Compare Service
+```
+
+Na raiz da API Principal:
 
 ```bash
 docker compose up --build
 ```
 
-### Serviços disponíveis
+---
+
+# Serviços Disponíveis
 
 | Serviço | Endereço |
 |---|---|
 | API Principal | `http://127.0.0.1:5000` |
 | API Secundária | `http://127.0.0.1:5001` |
 
-### Swagger
+---
 
-API Principal:
+# Swagger
+
+## API Principal
 
 ```text
 http://127.0.0.1:5000/
 ```
 
-API Secundária:
+## API Secundária
 
 ```text
 http://127.0.0.1:5001/
 ```
 
-Para encerrar os containers:
+---
 
-```bash
-docker compose down
+# Comunicação no Docker Compose
+
+Dentro da rede Docker, a API Principal utiliza:
+
+```text
+http://api-secundaria:5001
 ```
 
-## Arquitetura da Solução
-
-O MVP possui três componentes principais e um mecanismo de persistência:
-
-```mermaid
-flowchart LR
-    U["Usuário"]
-    A["GlobalPhone Compare API<br/>API Principal"]
-    B["GlobalPhone Compare Service<br/>API Secundária"]
-    C["Frankfurter<br/>API Externa"]
-    D[("SQLite")]
-
-    U --> A
-    A -->|"REST"| B
-    A -->|"HTTPS / REST"| C
-    A -->|"Persistência"| D
-```
-
-## Fluxo de Comunicação
-
-1. O usuário realiza as operações através da API Principal.
-2. A API Principal consulta e armazena os registros utilizando SQLite.
-3. Quando uma conversão é necessária, a API Principal consulta a Frankfurter para obter a taxa de câmbio.
-4. A API Principal envia os dados necessários para a API Secundária.
-5. A API Secundária realiza os cálculos de conversão ou comparação.
-6. A API Principal reúne as informações e retorna o resultado.
-7. Os endpoints podem ser visualizados e testados através do Swagger UI.
-
-## Docker Compose
-
-A comunicação entre os containers utiliza:
+A variável configurada é:
 
 ```text
 COMPARACAO_SERVICE_URL=http://api-secundaria:5001
 ```
 
-O nome `api-secundaria` corresponde ao serviço definido no arquivo `docker-compose.yml`.
+O nome `api-secundaria` corresponde ao serviço configurado no arquivo `docker-compose.yml`.
 
-## Objetivo do MVP
+---
 
-O objetivo do **GlobalPhone Compare** é demonstrar uma arquitetura componentizada capaz de integrar diferentes serviços para resolver um problema de comparação de preços internacionais.
+# Fluxo Geral
 
-A solução demonstra o uso de:
+```text
+Usuário
+   ↓
+GlobalPhone Compare API
+   ↓
+SQLite
+   ↓
+GlobalPhone Compare Service
+   ↓
+Frankfurter API
+   ↓
+Conversão / Comparação / Classificação / Ranking
+```
 
-- API REST
-- Comunicação entre serviços
-- Persistência de dados
-- API externa
-- Conversão de moedas
-- Comparação de preços
-- Swagger
-- Docker
-- Docker Compose
+A API Principal também pode consultar diretamente a Frankfurter em operações específicas de conversão e comparação.
 
-A arquitetura permite demonstrar a comunicação entre módulos independentes, persistência local e consumo de dados externos em um único fluxo.
+---
 
-## Autora
+# Objetivo do MVP
+
+O objetivo do **GlobalPhone Compare** é demonstrar uma arquitetura composta por serviços independentes capazes de trocar dados através de APIs REST.
+
+O projeto demonstra:
+
+- desenvolvimento de API REST;
+- CRUD completo;
+- persistência em SQLite;
+- comunicação entre APIs;
+- consumo de API externa;
+- conversão de moedas;
+- comparação de preços;
+- classificação de preços;
+- cálculo de economia;
+- ranking de preços;
+- Swagger;
+- Docker;
+- Docker Compose.
+
+A arquitetura permite que os iPhones sejam cadastrados uma única vez na API Principal e reutilizados pelo Service nas operações de análise.
+
+---
+
+# Autora
 
 **Bianca Maria Fernandes Alves**
 
