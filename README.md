@@ -82,31 +82,17 @@ A aplicação também utiliza a **Frankfurter API** para obtenção das taxas de
 
 ---
 
-# Arquitetura da Solução
+## Arquitetura da Solução
 
-```text
-                         Usuário
-                            |
-                            v
-               GlobalPhone Compare API
-                    API Principal
-                       /       \
-                      /         \
-                     v           v
-                  SQLite     Frankfurter
-                               API Externa
-                     |
-                     | REST
-                     v
-            GlobalPhone Compare Service
-                 API Secundária
-                     |
-                     v
-                 Frankfurter
-                 API Externa
-```
+![Arquitetura do GlobalPhone Compare - Cenário 2](docs/images/arquitetura-cenario-2.png)
 
-A API Principal e o Service podem utilizar informações de câmbio para realizar suas operações.
+A comunicação da solução ocorre da seguinte forma:
+
+- **GlobalPhone Compare API (API Principal) → GlobalPhone Compare Service (API Secundária):** comunicação REST para conversão e comparação de preços.
+- **GlobalPhone Compare API (API Principal) → Frankfurter API:** consulta de taxas de câmbio.
+- **GlobalPhone Compare API (API Principal) → SQLite:** leitura e persistência dos registros de iPhones.
+- **GlobalPhone Compare Service (API Secundária) → GlobalPhone Compare API (API Principal):** consulta dos iPhones cadastrados através de requisições REST.
+- **GlobalPhone Compare Service (API Secundária) → Frankfurter API:** consulta de cotação para conversão automática dos preços.
 
 ---
 

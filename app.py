@@ -42,7 +42,7 @@ db.init_app(app)
 api = Api(
     app,
     version="1.0",
-    title="GlobalPhone Compare API",
+    title="GlobalPhone Compare API - API Principal",
     description=(
         "API principal para cadastro e comparação "
         "de preços de iPhones pelo mundo."
