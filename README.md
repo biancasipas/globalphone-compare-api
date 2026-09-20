@@ -94,6 +94,14 @@ A comunicação da solução ocorre da seguinte forma:
 - **GlobalPhone Compare Service (API Secundária) → GlobalPhone Compare API (API Principal):** consulta dos iPhones cadastrados através de requisições REST.
 - **GlobalPhone Compare Service (API Secundária) → Frankfurter API:** consulta de cotação para conversão automática dos preços.
 
+```text
+                    Frankfurter API
+                    ↙           ↘
+                   ↓             ↓
+        API Principal ←──────→ API Secundária
+              ↕
+            SQLite
+```
 ---
 
 # Repositórios do Projeto
