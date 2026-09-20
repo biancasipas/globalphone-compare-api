@@ -12,7 +12,7 @@ services:
 
   api-secundaria:
     build:
-      context: ../globalphone-compare-service
+      context: ../../Globalphone-compare-service
     image: globalphone-compare-service
     container_name: globalphone-service
     ports:
