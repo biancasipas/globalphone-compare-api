@@ -37,10 +37,50 @@ O projeto utiliza uma arquitetura composta por uma **API Principal**, uma **API 
 - Docker
 - Docker Compose
 
+## Cenário Escolhido
+
+Para o desenvolvimento do **GlobalPhone Compare**, foi escolhido o **Cenário 2** proposto no trabalho.
+
+Nesse cenário, a solução é composta por uma **API Principal** e uma **API Secundária**, que se comunicam por meio de requisições REST.
+
+A **API Principal**, executada na porta `5000`, é responsável pelo cadastro e gerenciamento dos preços dos iPhones, persistência dos dados em SQLite, consumo da API externa de câmbio e comunicação com a API Secundária.
+
+A **API Secundária**, executada na porta `5001`, é responsável pelas regras de negócio de conversão, comparação e classificação dos preços.
+
+A aplicação utiliza a **Frankfurter API** como serviço externo para obtenção das taxas de câmbio.
+
+### Arquitetura da Solução
+
+![Arquitetura do GlobalPhone Compare - Cenário 2](docs/images/arquitetura-cenario-2.png)
+
+A comunicação da solução ocorre da seguinte forma:
+
+- **API Principal → API Secundária:** comunicação REST para conversão e comparação dos preços.
+- **API Principal → Frankfurter API:** consulta das taxas de câmbio.
+- **API Principal → SQLite:** leitura e persistência dos registros de iPhones.
+
+As duas APIs desenvolvidas são executadas em containers Docker separados.
+
+## Repositórios do Projeto
+
+O **GlobalPhone Compare** é composto por duas APIs desenvolvidas separadamente, cada uma disponibilizada em seu próprio repositório público no GitHub.
+
+### API Principal — GlobalPhone Compare API
+
+Responsável pelo gerenciamento dos dados dos iPhones, persistência em SQLite, consumo da API externa de câmbio e integração com a API Secundária.
+
+https://github.com/biancasipas/globalphone-compare-api
+
+### API Secundária — GlobalPhone Compare Service
+
+Responsável pelas regras de negócio de conversão, comparação e classificação dos preços dos iPhones.
+
+https://github.com/biancasipas/globalphone-compare-service
+
 ## Estrutura do Projeto
 
 ```text
-travel-planner-api/
+globalphone-compare-api/
 ├── app.py
 ├── requirements.txt
 ├── Dockerfile
