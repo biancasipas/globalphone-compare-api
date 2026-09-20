@@ -17,3 +17,5 @@ services:
     container_name: globalphone-service
     ports:
       - "5001:5001"
+    environment:
+      - API_PRINCIPAL_URL=http://api-principal:5000
