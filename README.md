@@ -91,9 +91,8 @@ A comunicação da solução ocorre da seguinte forma:
 - **GlobalPhone Compare API (API Principal) → GlobalPhone Compare Service (API Secundária):** comunicação REST para conversão e comparação de preços.
 - **GlobalPhone Compare API (API Principal) → Frankfurter API:** consulta de taxas de câmbio.
 - **GlobalPhone Compare API (API Principal) → SQLite:** leitura e persistência dos registros de iPhones.
-- **GlobalPhone Compare Service (API Secundária) → GlobalPhone Compare API (API Principal):** consulta dos iPhones cadastrados através de requisições REST.
-- **GlobalPhone Compare Service (API Secundária) → Frankfurter API:** consulta de cotação para conversão automática dos preços.
-
+- **GlobalPhone Compare Service (API Secundária):** recebe os dados enviados pela API Principal e executa as regras de conversão, comparação e classificação dos preços.
+  
 ```text
                     Frankfurter API
                     ↙           ↘
@@ -208,7 +207,6 @@ Os valores utilizados são apenas exemplos de demonstração do MVP.
 | `PATCH` | `/iphones/{id}` | Atualiza parcialmente um registro |
 | `DELETE` | `/iphones/{id}` | Exclui um iPhone |
 | `GET` | `/cotacao/{moeda}` | Consulta a cotação da moeda para BRL |
-| `GET` | `/iphones/{id}/preco-convertido` | Converte o preço do iPhone para Real |
 | `GET` | `/iphones/comparar/{id1}/{id2}` | Compara dois iPhones cadastrados |
 
 ---
@@ -326,36 +324,6 @@ Exemplo de resposta:
 ```
 
 A cotação é obtida através de uma API externa e pode variar conforme a data da consulta.
-
----
-
-# Conversão do Preço
-
-## GET `/iphones/{id}/preco-convertido`
-
-Exemplo:
-
-```text
-GET /iphones/1/preco-convertido
-```
-
-O fluxo é:
-
-```text
-ID do iPhone
-      ↓
-SQLite
-      ↓
-Preço + moeda
-      ↓
-Consulta da cotação
-      ↓
-Conversão para BRL
-      ↓
-Resultado
-```
-
-Quando o iPhone já utiliza a moeda `BRL`, a cotação utilizada é `1.0`.
 
 ---
 
