@@ -271,11 +271,9 @@ class IPhonePorId(Resource):
             }, 404
 
 
-        # Pega os campos digitados no Swagger
         dados = put_parser.parse_args()
 
 
-        # Atualiza todos os dados
         iphone.modelo = dados["modelo"]
 
         iphone.armazenamento = dados["armazenamento"]
@@ -315,7 +313,6 @@ class IPhonePorId(Resource):
             }, 404
 
 
-        # Pega os campos preenchidos
         dados = patch_parser.parse_args()
 
 
@@ -488,145 +485,6 @@ class Cotacao(Resource):
 
 
 # ============================================================
-# PREÇO DO IPHONE CONVERTIDO PARA REAL
-# ============================================================
-
-@api.route("/iphones/<int:id>/preco-convertido")
-class PrecoConvertido(Resource):
-
-    def get(self, id):
-
-
-        # ----------------------------------------------------
-        # BUSCA IPHONE NO BANCO
-        # ----------------------------------------------------
-
-        iphone = db.session.get(IPhone, id)
-
-
-        if not iphone:
-
-            return {
-                "mensagem": "iPhone não encontrado."
-            }, 404
-
-
-        moeda = iphone.moeda.upper()
-
-
-        # ====================================================
-        # SE JÁ FOR BRL
-        # ====================================================
-
-        if moeda == "BRL":
-
-            return {
-                "iphone": iphone.to_dict(),
-                "cotacao": 1.0,
-                "preco_em_reais": iphone.preco
-            }, 200
-
-
-        # ====================================================
-        # CONSULTA A API EXTERNA DE CÂMBIO
-        # ====================================================
-
-        url_cotacao = (
-            "https://api.frankfurter.dev/v2/rates"
-        )
-
-
-        parametros = {
-            "base": moeda,
-            "quotes": "BRL"
-        }
-
-
-        try:
-
-            resposta_cotacao = requests.get(
-                url_cotacao,
-                params=parametros,
-                timeout=10
-            )
-
-
-            resposta_cotacao.raise_for_status()
-
-
-            dados_cotacao = resposta_cotacao.json()
-
-
-            if not dados_cotacao:
-
-                return {
-                    "mensagem": (
-                        "Não foi possível obter a cotação."
-                    )
-                }, 502
-
-
-            cotacao = dados_cotacao[0]["rate"]
-
-
-        except requests.RequestException:
-
-            return {
-                "mensagem": (
-                    "Erro ao consultar a API externa "
-                    "de câmbio."
-                )
-            }, 502
-
-
-        # ====================================================
-        # ENVIA PARA A API SECUNDÁRIA
-        # ====================================================
-
-        dados_conversao = {
-            "preco": iphone.preco,
-            "cotacao": cotacao,
-            "moeda": moeda
-        }
-
-
-        try:
-
-            resposta_secundaria = requests.post(
-                f"{COMPARACAO_SERVICE_URL}/converter-preco",
-                json=dados_conversao,
-                timeout=10
-            )
-
-
-            resposta_secundaria.raise_for_status()
-
-
-            resultado = resposta_secundaria.json()
-
-
-        except requests.RequestException:
-
-            return {
-                "mensagem": (
-                    "Erro ao comunicar com "
-                    "a API Secundária."
-                )
-            }, 502
-
-
-        # ====================================================
-        # RESPOSTA FINAL
-        # ====================================================
-
-        return {
-            "iphone": iphone.to_dict(),
-            "cotacao": cotacao,
-            "conversao": resultado
-        }, 200
-
-
-# ============================================================
 # COMPARAR DOIS IPHONES
 # ============================================================
 
@@ -674,7 +532,7 @@ class CompararIPhones(Resource):
 
 
             # ------------------------------------------------
-            # CONSULTA COTAÇÃO
+            # CONSULTA FRANKFURTER
             # ------------------------------------------------
 
             url = "https://api.frankfurter.dev/v2/rates"
