@@ -1,19 +1,26 @@
 import os
 
 from flask import Flask
-from flask_restx import Api, Resource, fields
+from flask_restx import Api, Resource, fields, reqparse
 import requests
 
 from database.db import db
 from models.iphone import IPhone
 
 
-# Endereço da API Secundária
+# ============================================================
+# API SECUNDÁRIA
+# ============================================================
+
 COMPARACAO_SERVICE_URL = os.getenv(
     "COMPARACAO_SERVICE_URL",
     "http://127.0.0.1:5001"
 )
 
+
+# ============================================================
+# FLASK
+# ============================================================
 
 app = Flask(__name__)
 
@@ -44,10 +51,9 @@ api = Api(
 
 
 # ============================================================
-# MODELOS DO SWAGGER
+# MODELO DO SWAGGER - POST
 # ============================================================
 
-# Modelo usado no POST e PUT
 iphone_model = api.model(
     "IPhone",
     {
@@ -61,17 +67,117 @@ iphone_model = api.model(
 )
 
 
-# Modelo usado no PATCH
-iphone_patch_model = api.model(
-    "IPhonePatch",
-    {
-        "modelo": fields.String(required=False),
-        "armazenamento": fields.String(required=False),
-        "cor": fields.String(required=False),
-        "pais": fields.String(required=False),
-        "moeda": fields.String(required=False),
-        "preco": fields.Float(required=False)
-    }
+# ============================================================
+# CAMPOS DO PUT
+# Atualização completa
+# Todos os campos são obrigatórios
+# ============================================================
+
+put_parser = reqparse.RequestParser()
+
+put_parser.add_argument(
+    "modelo",
+    type=str,
+    required=True,
+    location="form",
+    help="Modelo do iPhone"
+)
+
+put_parser.add_argument(
+    "armazenamento",
+    type=str,
+    required=True,
+    location="form",
+    help="Armazenamento do iPhone"
+)
+
+put_parser.add_argument(
+    "cor",
+    type=str,
+    required=True,
+    location="form",
+    help="Cor do iPhone"
+)
+
+put_parser.add_argument(
+    "pais",
+    type=str,
+    required=True,
+    location="form",
+    help="País onde o iPhone é vendido"
+)
+
+put_parser.add_argument(
+    "moeda",
+    type=str,
+    required=True,
+    location="form",
+    help="Moeda do preço"
+)
+
+put_parser.add_argument(
+    "preco",
+    type=float,
+    required=True,
+    location="form",
+    help="Preço do iPhone"
+)
+
+
+# ============================================================
+# CAMPOS DO PATCH
+# Atualização parcial
+# Todos os campos são opcionais
+# ============================================================
+
+patch_parser = reqparse.RequestParser()
+
+patch_parser.add_argument(
+    "modelo",
+    type=str,
+    required=False,
+    location="form",
+    help="Novo modelo"
+)
+
+patch_parser.add_argument(
+    "armazenamento",
+    type=str,
+    required=False,
+    location="form",
+    help="Novo armazenamento"
+)
+
+patch_parser.add_argument(
+    "cor",
+    type=str,
+    required=False,
+    location="form",
+    help="Nova cor"
+)
+
+patch_parser.add_argument(
+    "pais",
+    type=str,
+    required=False,
+    location="form",
+    help="Novo país"
+)
+
+patch_parser.add_argument(
+    "moeda",
+    type=str,
+    required=False,
+    location="form",
+    help="Nova moeda"
+)
+
+patch_parser.add_argument(
+    "preco",
+    type=float,
+    required=False,
+    location="form",
+    help="Novo preço"
 )
 
 
@@ -83,6 +189,7 @@ iphone_patch_model = api.model(
 class Home(Resource):
 
     def get(self):
+
         return {
             "mensagem": "GlobalPhone Compare API funcionando!"
         }, 200
@@ -95,7 +202,10 @@ class Home(Resource):
 @api.route("/iphones")
 class IPhones(Resource):
 
+    # --------------------------------------------------------
     # GET - Lista todos os iPhones
+    # --------------------------------------------------------
+
     def get(self):
 
         iphones = IPhone.query.all()
@@ -108,7 +218,10 @@ class IPhones(Resource):
         }, 200
 
 
+    # --------------------------------------------------------
     # POST - Cadastra um novo iPhone
+    # --------------------------------------------------------
+
     @api.expect(iphone_model)
     def post(self):
 
@@ -124,6 +237,7 @@ class IPhones(Resource):
         )
 
         db.session.add(novo_iphone)
+
         db.session.commit()
 
         return {
@@ -139,27 +253,44 @@ class IPhones(Resource):
 @api.route("/iphones/<int:id>")
 class IPhonePorId(Resource):
 
-    # PUT - Atualiza todos os campos
-    @api.expect(iphone_model)
+
+    # ========================================================
+    # PUT
+    # Atualiza TODOS os campos
+    # ========================================================
+
+    @api.expect(put_parser)
     def put(self, id):
 
         iphone = db.session.get(IPhone, id)
 
         if not iphone:
+
             return {
                 "mensagem": "iPhone não encontrado."
             }, 404
 
-        dados = api.payload
 
+        # Pega os campos digitados no Swagger
+        dados = put_parser.parse_args()
+
+
+        # Atualiza todos os dados
         iphone.modelo = dados["modelo"]
+
         iphone.armazenamento = dados["armazenamento"]
+
         iphone.cor = dados["cor"]
+
         iphone.pais = dados["pais"]
+
         iphone.moeda = dados["moeda"].upper()
+
         iphone.preco = dados["preco"]
 
+
         db.session.commit()
+
 
         return {
             "mensagem": "iPhone atualizado com sucesso!",
@@ -167,57 +298,111 @@ class IPhonePorId(Resource):
         }, 200
 
 
-    # PATCH - Atualiza somente os campos enviados
-    @api.expect(iphone_patch_model)
+    # ========================================================
+    # PATCH
+    # Atualiza SOMENTE os campos preenchidos
+    # ========================================================
+
+    @api.expect(patch_parser)
     def patch(self, id):
 
         iphone = db.session.get(IPhone, id)
 
         if not iphone:
+
             return {
                 "mensagem": "iPhone não encontrado."
             }, 404
 
-        dados = api.payload
 
-        if "modelo" in dados:
+        # Pega os campos preenchidos
+        dados = patch_parser.parse_args()
+
+
+        # ----------------------------------------------------
+        # MODELO
+        # ----------------------------------------------------
+
+        if dados["modelo"] is not None:
+
             iphone.modelo = dados["modelo"]
 
-        if "armazenamento" in dados:
+
+        # ----------------------------------------------------
+        # ARMAZENAMENTO
+        # ----------------------------------------------------
+
+        if dados["armazenamento"] is not None:
+
             iphone.armazenamento = dados["armazenamento"]
 
-        if "cor" in dados:
+
+        # ----------------------------------------------------
+        # COR
+        # ----------------------------------------------------
+
+        if dados["cor"] is not None:
+
             iphone.cor = dados["cor"]
 
-        if "pais" in dados:
+
+        # ----------------------------------------------------
+        # PAÍS
+        # ----------------------------------------------------
+
+        if dados["pais"] is not None:
+
             iphone.pais = dados["pais"]
 
-        if "moeda" in dados:
+
+        # ----------------------------------------------------
+        # MOEDA
+        # ----------------------------------------------------
+
+        if dados["moeda"] is not None:
+
             iphone.moeda = dados["moeda"].upper()
 
-        if "preco" in dados:
+
+        # ----------------------------------------------------
+        # PREÇO
+        # ----------------------------------------------------
+
+        if dados["preco"] is not None:
+
             iphone.preco = dados["preco"]
+
 
         db.session.commit()
 
+
         return {
-            "mensagem": "iPhone atualizado parcialmente com sucesso!",
+            "mensagem": (
+                "iPhone atualizado parcialmente com sucesso!"
+            ),
             "iphone": iphone.to_dict()
         }, 200
 
 
-    # DELETE - Exclui um iPhone
+    # ========================================================
+    # DELETE
+    # ========================================================
+
     def delete(self, id):
 
         iphone = db.session.get(IPhone, id)
 
         if not iphone:
+
             return {
                 "mensagem": "iPhone não encontrado."
             }, 404
 
+
         db.session.delete(iphone)
+
         db.session.commit()
+
 
         return {
             "mensagem": "iPhone excluído com sucesso!"
@@ -235,13 +420,23 @@ class Cotacao(Resource):
 
         moeda = moeda.upper()
 
-        # Real não precisa ser convertido
+
+        # ----------------------------------------------------
+        # REAL NÃO PRECISA SER CONVERTIDO
+        # ----------------------------------------------------
+
         if moeda == "BRL":
+
             return {
                 "moeda_origem": "BRL",
                 "moeda_destino": "BRL",
                 "cotacao": 1.0
             }, 200
+
+
+        # ----------------------------------------------------
+        # API DE COTAÇÃO
+        # ----------------------------------------------------
 
         url = "https://api.frankfurter.dev/v2/rates"
 
@@ -249,6 +444,7 @@ class Cotacao(Resource):
             "base": moeda,
             "quotes": "BRL"
         }
+
 
         try:
 
@@ -258,16 +454,22 @@ class Cotacao(Resource):
                 timeout=10
             )
 
+
             resposta.raise_for_status()
+
 
             dados = resposta.json()
 
+
             if not dados:
+
                 return {
                     "mensagem": "Cotação não encontrada."
                 }, 404
 
+
             cotacao = dados[0]["rate"]
+
 
             return {
                 "moeda_origem": moeda,
@@ -275,10 +477,13 @@ class Cotacao(Resource):
                 "cotacao": cotacao
             }, 200
 
+
         except requests.RequestException:
 
             return {
-                "mensagem": "Erro ao consultar a API de cotação."
+                "mensagem": (
+                    "Erro ao consultar a API de cotação."
+                )
             }, 502
 
 
@@ -291,10 +496,16 @@ class PrecoConvertido(Resource):
 
     def get(self, id):
 
-        # Busca o iPhone no SQLite
+
+        # ----------------------------------------------------
+        # BUSCA IPHONE NO BANCO
+        # ----------------------------------------------------
+
         iphone = db.session.get(IPhone, id)
 
+
         if not iphone:
+
             return {
                 "mensagem": "iPhone não encontrado."
             }, 404
@@ -320,12 +531,16 @@ class PrecoConvertido(Resource):
         # CONSULTA A API EXTERNA DE CÂMBIO
         # ====================================================
 
-        url_cotacao = "https://api.frankfurter.dev/v2/rates"
+        url_cotacao = (
+            "https://api.frankfurter.dev/v2/rates"
+        )
+
 
         parametros = {
             "base": moeda,
             "quotes": "BRL"
         }
+
 
         try:
 
@@ -335,14 +550,21 @@ class PrecoConvertido(Resource):
                 timeout=10
             )
 
+
             resposta_cotacao.raise_for_status()
+
 
             dados_cotacao = resposta_cotacao.json()
 
+
             if not dados_cotacao:
+
                 return {
-                    "mensagem": "Não foi possível obter a cotação."
+                    "mensagem": (
+                        "Não foi possível obter a cotação."
+                    )
                 }, 502
+
 
             cotacao = dados_cotacao[0]["rate"]
 
@@ -350,7 +572,10 @@ class PrecoConvertido(Resource):
         except requests.RequestException:
 
             return {
-                "mensagem": "Erro ao consultar a API externa de câmbio."
+                "mensagem": (
+                    "Erro ao consultar a API externa "
+                    "de câmbio."
+                )
             }, 502
 
 
@@ -364,6 +589,7 @@ class PrecoConvertido(Resource):
             "moeda": moeda
         }
 
+
         try:
 
             resposta_secundaria = requests.post(
@@ -372,7 +598,9 @@ class PrecoConvertido(Resource):
                 timeout=10
             )
 
+
             resposta_secundaria.raise_for_status()
+
 
             resultado = resposta_secundaria.json()
 
@@ -381,7 +609,8 @@ class PrecoConvertido(Resource):
 
             return {
                 "mensagem": (
-                    "Erro ao comunicar com a API Secundária."
+                    "Erro ao comunicar com "
+                    "a API Secundária."
                 )
             }, 502
 
@@ -397,7 +626,6 @@ class PrecoConvertido(Resource):
         }, 200
 
 
-
 # ============================================================
 # COMPARAR DOIS IPHONES
 # ============================================================
@@ -407,27 +635,56 @@ class CompararIPhones(Resource):
 
     def get(self, id1, id2):
 
+
+        # ----------------------------------------------------
+        # BUSCA OS DOIS IPHONES
+        # ----------------------------------------------------
+
         iphone1 = db.session.get(IPhone, id1)
+
         iphone2 = db.session.get(IPhone, id2)
 
+
         if not iphone1 or not iphone2:
+
             return {
-                "mensagem": "Um dos iPhones não foi encontrado."
+                "mensagem": (
+                    "Um dos iPhones não foi encontrado."
+                )
             }, 404
+
+
+        # ====================================================
+        # FUNÇÃO PARA CONVERTER PARA REAL
+        # ====================================================
 
         def converter_para_real(iphone):
 
+
             moeda = iphone.moeda.upper()
 
+
+            # ------------------------------------------------
+            # SE JÁ FOR REAL
+            # ------------------------------------------------
+
             if moeda == "BRL":
+
                 return iphone.preco
 
+
+            # ------------------------------------------------
+            # CONSULTA COTAÇÃO
+            # ------------------------------------------------
+
             url = "https://api.frankfurter.dev/v2/rates"
+
 
             parametros = {
                 "base": moeda,
                 "quotes": "BRL"
             }
+
 
             resposta_cotacao = requests.get(
                 url,
@@ -435,16 +692,26 @@ class CompararIPhones(Resource):
                 timeout=10
             )
 
+
             resposta_cotacao.raise_for_status()
+
 
             dados_cotacao = resposta_cotacao.json()
 
+
             if not dados_cotacao:
+
                 raise requests.RequestException(
                     "Cotação não encontrada."
                 )
 
+
             cotacao = dados_cotacao[0]["rate"]
+
+
+            # ------------------------------------------------
+            # ENVIA PARA API SECUNDÁRIA
+            # ------------------------------------------------
 
             dados_conversao = {
                 "preco": iphone.preco,
@@ -452,22 +719,45 @@ class CompararIPhones(Resource):
                 "moeda": moeda
             }
 
+
             resposta_secundaria = requests.post(
-                f"{COMPARACAO_SERVICE_URL}/converter-preco",
+                (
+                    f"{COMPARACAO_SERVICE_URL}"
+                    "/converter-preco"
+                ),
                 json=dados_conversao,
                 timeout=10
             )
 
+
             resposta_secundaria.raise_for_status()
 
-            resultado_conversao = resposta_secundaria.json()
 
-            return resultado_conversao["preco_em_reais"]
+            resultado_conversao = (
+                resposta_secundaria.json()
+            )
+
+
+            return (
+                resultado_conversao["preco_em_reais"]
+            )
+
+
+        # ====================================================
+        # REALIZA A COMPARAÇÃO
+        # ====================================================
 
         try:
 
-            preco1_real = converter_para_real(iphone1)
-            preco2_real = converter_para_real(iphone2)
+            preco1_real = converter_para_real(
+                iphone1
+            )
+
+
+            preco2_real = converter_para_real(
+                iphone2
+            )
+
 
             dados_comparacao = {
                 "pais_1": iphone1.pais,
@@ -476,15 +766,22 @@ class CompararIPhones(Resource):
                 "preco_2": preco2_real
             }
 
+
             resposta_comparacao = requests.post(
-                f"{COMPARACAO_SERVICE_URL}/comparar-precos",
+                (
+                    f"{COMPARACAO_SERVICE_URL}"
+                    "/comparar-precos"
+                ),
                 json=dados_comparacao,
                 timeout=10
             )
 
+
             resposta_comparacao.raise_for_status()
 
+
             resultado = resposta_comparacao.json()
+
 
             return {
                 "iphone_1": iphone1.to_dict(),
@@ -494,10 +791,13 @@ class CompararIPhones(Resource):
                 "comparacao": resultado
             }, 200
 
+
         except requests.RequestException:
 
             return {
-                "mensagem": "Erro ao realizar a comparação."
+                "mensagem": (
+                    "Erro ao realizar a comparação."
+                )
             }, 502
 
 
@@ -506,6 +806,7 @@ class CompararIPhones(Resource):
 # ============================================================
 
 with app.app_context():
+
     db.create_all()
 
 
